@@ -17,15 +17,21 @@ struct ContentView: View {
 	@State private var guesses = [String]()
 	@State private var answer = ""
 	@State private var isGameOver = false
+	@State private var alertTitle = ""
+	@State private var alertMessage = ""
 	
 	func submitGuess() {
 		guard Set(guess).count == answerLength else { return }
 		guard guess.count == answerLength else { return }
+		guard !guesses.contains(guess) else { return }
 		let badCharacters = CharacterSet(charactersIn: "0123456789").inverted
 		guard guess.rangeOfCharacter(from: badCharacters) == nil else { return }
 		guesses.insert(guess, at: 0)
+		if guesses.count >= maximumGuesses {
+			onGameLose()
+		}
 		if result(for: guess).contains("\(answerLength)b") {
-			isGameOver = true
+			onGameWin()
 		}
 		guess = ""
 	}
@@ -43,6 +49,24 @@ struct ContentView: View {
 			}
 		}
 		return "\(bulls)b \(cows)c"
+	}
+	
+	func onGameLose() {
+		alertTitle = "You Lose"
+		alertMessage = "You have used up your chances of guessing. The correct number was \(answer). \n Click OK to start a new game."
+		isGameOver = true
+	}
+	
+	func onGameWin() {
+		alertTitle = "You Win"
+		if guesses.count < 10 {
+			alertMessage = "You made it with under 10 attempts. Great!"
+		} else if guesses.count >= 10 && guess.count < 20 {
+			alertMessage = "You made it with under 20 attempts. Good."
+		} else {
+			alertMessage = "You did ok."
+		}
+		isGameOver = true
 	}
 	
 	func startNewGame() {
@@ -71,6 +95,8 @@ struct ContentView: View {
 				let shouldShowResult = (enableHardMode == false) || (enableHardMode && index == 0)
 				
 				HStack {
+					Text("Guess \(index + 1)")
+					Spacer()
 					Text(guess)
 					Spacer()
 					if shouldShowResult {
@@ -91,10 +117,10 @@ struct ContentView: View {
 		.onChange(of: answerLength) { _ in
 			startNewGame()
 		}
-		.alert("You Win", isPresented: $isGameOver) {
+		.alert(alertTitle, isPresented: $isGameOver) {
 			Button("OK") { startNewGame() }
 		} message: {
-			Text("Congratulation. Click OK to play again.")
+			Text(alertMessage)
 		}
 		.navigationTitle("Cows and Bulls")
     }
